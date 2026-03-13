@@ -15,6 +15,7 @@ body {
     height: 100vh;
     min-height: -webkit-fill-available;
     position: relative;
+    touch-action: pan-x pan-y;
 }
 
 .menu {
@@ -29,15 +30,9 @@ body {
     transition: transform 0.5s cubic-bezier(0.4, 0, 1, 1);
 }
 
-.onscreen {
-    transform: translateX(0);
-}
-.offscreen-left {
-    transform: translateX(-100%);
-}
-.offscreen-right {
-    transform: translateX(100%);
-}
+.onscreen  { transform: translateX(0); }
+.offscreen-left  { transform: translateX(-100%); }
+.offscreen-right { transform: translateX(100%); }
 
 .btns {
     display: flex;
@@ -161,6 +156,19 @@ body {
     max-height: 0;
 }
 
+.mafia-count-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.4s ease;
+}
+
+.mafia-count-wrapper.expanded {
+    max-height: 22vw;
+}
+
 #modeToggle {
     transform: translateX(0);
     transition: transform 0.4s ease;
@@ -176,6 +184,7 @@ body {
     display: inline-block;
     width: 20vw;
     height: 8vw;
+    flex-shrink: 0;
 }
 
 .switch input {
@@ -187,10 +196,7 @@ body {
 .slider {
     position: absolute;
     cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     background-color: #ccc;
     transition: 0.4s;
     border-radius: 10vw;
@@ -205,7 +211,7 @@ body {
     bottom: 0.5vw;
     background-color: white;
     transition: 0.4s;
-    border-radius: 75%;
+    border-radius: 50%;
 }
 
 .switch input:checked + .slider {
@@ -230,15 +236,8 @@ body {
     transition: all 0.1s ease;
 }
 
-.btn:hover {
-    background-color: #161d28;
-    color: white;
-}
-
-.btn:active {
-    background-color: white;
-    color: #0D1117;
-}
+.btn:hover  { background-color: #161d28; color: white; }
+.btn:active { background-color: white; color: #0D1117; }
 
 .player-input {
     background-color: #1a2535;
@@ -266,4 +265,93 @@ body {
     width: 88vw;
     padding: 0 4vw;
     box-sizing: border-box;
+}
+
+#mafiaCountInput {
+    width: 72vw;
+}
+
+@media (orientation: landscape) {
+    .btns {
+        gap: 1.5vh;
+    }
+
+    .btn {
+        height: 11vh;
+        font-size: 4vh;
+        width: 60vw;
+    }
+
+    .toggle-btn {
+        height: 11vh;
+        font-size: 4vh;
+        width: 55vw;
+        padding: 0 3vw;
+    }
+
+    /* Switch uses vh in landscape so it doesn't balloon with wide vw */
+    .switch {
+        width: 11vh;
+        height: 5vh;
+    }
+
+    .slider {
+        border-radius: 5vh;
+    }
+
+    .slider:before {
+        height: 4vh;
+        width: 4vh;
+        left: 0.4vh;
+        bottom: 0.4vh;
+    }
+
+    .switch input:checked + .slider:before {
+        transform: translateX(6vh);
+    }
+
+    .game-content {
+        max-height: 85vh;
+        gap: 1.5vh;
+        padding: 2vh 0;
+    }
+
+    .game-message {
+        font-size: 4vh;
+    }
+
+    .player-input {
+        height: 10vh;
+        font-size: 2.5vh;
+    }
+
+    #playerList {
+        width: 70vw;
+    }
+
+    #mafiaCountInput {
+        width: 55vw;
+    }
+
+    .mafia-count-wrapper.expanded {
+        max-height: 12vh;
+    }
+
+    .roles-toggle-wrapper {
+        max-height: 12vh;
+    }
+
+    .player-select-item {
+        height: 12vh;
+        font-size: 3vh;
+    }
+
+    .select-mark {
+        font-size: 3vh;
+    }
+
+    .player-select-list {
+        width: 90vw;
+        gap: 1.5vh;
+    }
 }

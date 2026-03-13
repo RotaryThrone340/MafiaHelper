@@ -64,14 +64,25 @@ function updatePlayerListLayout() {
     const inputs = playerList.querySelectorAll('.player-input');
     const count = inputs.length;
     const cols = Math.ceil(count / 3);
+    const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+
     playerList.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-    const fontSize = Math.max(3, 7 - (cols - 1) * 2);
-    const height = Math.max(14, 20 - (cols - 1) * 3);
+
+    const fontSize = isLandscape
+        ? Math.max(1.5, 2.5 - (cols - 1) * 0.5) + 'vh'
+        : Math.max(3, 7 - (cols - 1) * 2) + 'vw';
+
+    const height = isLandscape
+        ? Math.max(7, 10 - (cols - 1) * 2) + 'vh'
+        : Math.max(14, 20 - (cols - 1) * 3) + 'vw';
+
     inputs.forEach(el => {
-        el.style.fontSize = `${fontSize}vw`;
-        el.style.height = `${height}vw`;
+        el.style.fontSize = fontSize;
+        el.style.height = height;
     });
 }
+
+window.addEventListener('resize', updatePlayerListLayout);
 
 addPlayerBtn.addEventListener('click', () => {
     const input = document.createElement('input');
@@ -124,9 +135,17 @@ if (switchInput && modeLabel) {
 // ============ ROLE TOGGLES ============
 let nightWatchmen = true;
 let doctor = true;
+let sheriff = false;
+let mafiaCountManual = false;
+let manualMafiaCount = 1;
 
 const nightWatchmenToggle = document.getElementById('nightWatchmenToggle');
 const doctorToggle = document.getElementById('doctorToggle');
+const sheriffToggle = document.getElementById('sheriffToggle');
+const mafiaCountSwitch = document.getElementById('mafiaCountSwitch');
+const mafiaCountLabel = document.getElementById('mafiaCountLabel');
+const mafiaCountWrapper = document.getElementById('mafiaCountWrapper');
+const mafiaCountInput = document.getElementById('mafiaCountInput');
 
 nightWatchmenToggle && nightWatchmenToggle.addEventListener('change', () => {
     nightWatchmen = nightWatchmenToggle.checked;
@@ -134,6 +153,21 @@ nightWatchmenToggle && nightWatchmenToggle.addEventListener('change', () => {
 
 doctorToggle && doctorToggle.addEventListener('change', () => {
     doctor = doctorToggle.checked;
+});
+
+sheriffToggle && sheriffToggle.addEventListener('change', () => {
+    sheriff = sheriffToggle.checked;
+});
+
+mafiaCountSwitch && mafiaCountSwitch.addEventListener('change', () => {
+    mafiaCountManual = mafiaCountSwitch.checked;
+    mafiaCountLabel.textContent = mafiaCountManual ? 'Mafia Count: Manual' : 'Mafia Count: Auto';
+    mafiaCountWrapper.classList.toggle('expanded', mafiaCountManual);
+});
+
+mafiaCountInput && mafiaCountInput.addEventListener('change', () => {
+    manualMafiaCount = Math.max(1, parseInt(mafiaCountInput.value) || 1);
+    mafiaCountInput.value = manualMafiaCount;
 });
 
 // ============ GAME STATE ============
@@ -145,9 +179,12 @@ const gameState = {
     mafiaCount: 1,
     nwPlayer: null,
     doctorPlayer: null,
+    sheriffPlayer: null,
     killTarget: null,
     saveTarget: null,
     checkTarget: null,
+    sheriffKillTarget: null,
+    sheriffUsedShot: false,
     round: 0,
     rolesRegistered: false,
     lpc_assignIndex: 0
@@ -173,7 +210,8 @@ function isRoleAlive(playerName) {
 function checkRolesRegistered() {
     if (gameState.mafiaPlayers.length >= gameState.mafiaCount &&
         (!nightWatchmen || gameState.nwPlayer !== null) &&
-        (!doctor || gameState.doctorPlayer !== null)) {
+        (!doctor || gameState.doctorPlayer !== null) &&
+        (!sheriff || gameState.sheriffPlayer !== null)) {
         gameState.rolesRegistered = true;
     }
 }
@@ -198,8 +236,8 @@ confirmStartBtn && confirmStartBtn.addEventListener('click', () => {
         return;
     }
 
-    const mafiaCount = getMafiaCount(players.length);
-    const minNeeded = mafiaCount + (nightWatchmen ? 1 : 0) + (doctor ? 1 : 0) + 1;
+    const mafiaCount = mafiaCountManual ? manualMafiaCount : getMafiaCount(players.length);
+    const minNeeded = mafiaCount + (nightWatchmen ? 1 : 0) + (doctor ? 1 : 0) + (sheriff ? 1 : 0) + 1;
     if (players.length < minNeeded) {
         alert(`Not enough players for the selected roles! You need at least ${minNeeded} players.`);
         return;
@@ -211,9 +249,12 @@ confirmStartBtn && confirmStartBtn.addEventListener('click', () => {
     gameState.mafiaCount = mafiaCount;
     gameState.nwPlayer = null;
     gameState.doctorPlayer = null;
+    gameState.sheriffPlayer = null;
     gameState.killTarget = null;
     gameState.saveTarget = null;
     gameState.checkTarget = null;
+    gameState.sheriffKillTarget = null;
+    gameState.sheriffUsedShot = false;
     gameState.round = 1;
     gameState.rolesRegistered = false;
     gameState.lpc_assignIndex = 0;
@@ -254,12 +295,21 @@ function showMessage(text, next) {
 
 function applyGridLayout(listEl, playerCount) {
     const cols = Math.ceil(playerCount / 3);
+    const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+
     listEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-    const fontSize = Math.max(3, 5 - (cols - 1));
-    const height = Math.max(14, 20 - (cols - 1) * 3);
+
+    const fontSize = isLandscape
+        ? Math.max(1.5, 3 - (cols - 1) * 0.5) + 'vh'
+        : Math.max(3, 5 - (cols - 1)) + 'vw';
+
+    const height = isLandscape
+        ? Math.max(8, 14 - (cols - 1) * 2) + 'vh'
+        : Math.max(14, 20 - (cols - 1) * 3) + 'vw';
+
     listEl.querySelectorAll('.player-select-item').forEach(el => {
-        el.style.fontSize = `${fontSize}vw`;
-        el.style.height = `${height}vw`;
+        el.style.fontSize = fontSize;
+        el.style.height = height;
     });
 }
 
@@ -353,7 +403,8 @@ function renderPhase() {
             gameState.mafiaPlayers = shuffled.slice(idx, idx + gameState.mafiaCount);
             idx += gameState.mafiaCount;
             if (nightWatchmen) { gameState.nwPlayer = shuffled[idx++]; }
-            if (doctor) { gameState.doctorPlayer = shuffled[idx++]; }
+            if (doctor)        { gameState.doctorPlayer = shuffled[idx++]; }
+            if (sheriff)       { gameState.sheriffPlayer = shuffled[idx++]; }
             gameState.rolesRegistered = true;
             gameState.lpc_assignIndex = 0;
             gameState.phase = 'lpc_reveal_pass';
@@ -373,11 +424,12 @@ function renderPhase() {
         case 'lpc_reveal_role': {
             const player = gameState.players[gameState.lpc_assignIndex];
             let role = 'Townsperson';
-            if (gameState.mafiaPlayers.includes(player)) role = '🔴 Mafia';
-            else if (player === gameState.nwPlayer) role = '🔵 Night Watchmen';
-            else if (player === gameState.doctorPlayer) role = '🟢 Doctor';
+            if (gameState.mafiaPlayers.includes(player))  role = '🔴 Mafia';
+            else if (player === gameState.nwPlayer)        role = '🔵 Night Watchmen';
+            else if (player === gameState.doctorPlayer)    role = '🟢 Doctor';
+            else if (player === gameState.sheriffPlayer)   role = '⭐ Sheriff';
 
-            showMessage(`Your role is:<br><br><strong>${role}</strong><br><br>Remember your role, then pass the phone back.`, () => {
+            showMessage(`Your role is:<br><br><strong>${role}</strong><br><br>Remember your role, then press continue.`, () => {
                 gameState.lpc_assignIndex++;
                 if (gameState.lpc_assignIndex < gameState.players.length) {
                     gameState.phase = 'lpc_reveal_pass';
@@ -396,13 +448,10 @@ function renderPhase() {
                 : `Select the ${gameState.mafiaCount} Mafia players.`;
             showMultiPlayerSelect(label, gameState.alivePlayers, gameState.mafiaCount, (selected) => {
                 gameState.mafiaPlayers = selected;
-                if (nightWatchmen) {
-                    gameState.phase = 'lpc_manual_nw';
-                } else if (doctor) {
-                    gameState.phase = 'lpc_manual_doctor';
-                } else {
-                    gameState.phase = 'lpc_manual_done';
-                }
+                if (nightWatchmen)     gameState.phase = 'lpc_manual_nw';
+                else if (doctor)       gameState.phase = 'lpc_manual_doctor';
+                else if (sheriff)      gameState.phase = 'lpc_manual_sheriff';
+                else                   gameState.phase = 'lpc_manual_done';
                 renderPhase();
             });
             break;
@@ -412,7 +461,9 @@ function renderPhase() {
             const candidates = gameState.alivePlayers.filter(p => !gameState.mafiaPlayers.includes(p));
             showPlayerSelect("Select the Night Watchmen.", candidates, (selected) => {
                 gameState.nwPlayer = selected;
-                gameState.phase = doctor ? 'lpc_manual_doctor' : 'lpc_manual_done';
+                if (doctor)       gameState.phase = 'lpc_manual_doctor';
+                else if (sheriff) gameState.phase = 'lpc_manual_sheriff';
+                else              gameState.phase = 'lpc_manual_done';
                 renderPhase();
             });
             break;
@@ -424,6 +475,20 @@ function renderPhase() {
             );
             showPlayerSelect("Select the Doctor.", candidates, (selected) => {
                 gameState.doctorPlayer = selected;
+                gameState.phase = sheriff ? 'lpc_manual_sheriff' : 'lpc_manual_done';
+                renderPhase();
+            });
+            break;
+        }
+
+        case 'lpc_manual_sheriff': {
+            const candidates = gameState.alivePlayers.filter(p =>
+                !gameState.mafiaPlayers.includes(p) &&
+                p !== gameState.nwPlayer &&
+                p !== gameState.doctorPlayer
+            );
+            showPlayerSelect("Select the Sheriff.", candidates, (selected) => {
+                gameState.sheriffPlayer = selected;
                 gameState.phase = 'lpc_manual_done';
                 renderPhase();
             });
@@ -443,7 +508,8 @@ function renderPhase() {
         case 'setup2': {
             let msg = 'Allow everyone to wake up. Let everyone know that Ace is Mafia';
             if (nightWatchmen) msg += ', King is Night Watchmen';
-            if (doctor) msg += ', Queen is Doctor';
+            if (doctor)        msg += ', Queen is Doctor';
+            if (sheriff)       msg += ', Jack is Sheriff';
             msg += '.';
             showMessage(msg, 'setup3');
             break;
@@ -484,15 +550,10 @@ function renderPhase() {
             const targets = aliveTown();
             showPlayerSelect("Who does the Mafia want to kill?", targets, (selected) => {
                 gameState.killTarget = selected;
-                const nwActive = nightWatchmen && (isRoleAlive(gameState.nwPlayer) || !gameState.rolesRegistered);
-                const docActive = doctor && (isRoleAlive(gameState.doctorPlayer) || !gameState.rolesRegistered);
-                if (nwActive) {
-                    gameState.phase = 'night_nw_wake';
-                } else if (docActive) {
-                    gameState.phase = 'night_doctor_wake';
-                } else {
-                    gameState.phase = 'day_announce';
-                }
+                if (nightWatchmen)     gameState.phase = 'night_nw_wake';
+                else if (doctor)       gameState.phase = 'night_doctor_wake';
+                else if (sheriff)      gameState.phase = 'night_sheriff_wake';
+                else                   gameState.phase = 'day_announce';
                 renderPhase();
             });
             break;
@@ -501,7 +562,13 @@ function renderPhase() {
         // ---- NIGHT: NIGHT WATCHMEN ----
         case 'night_nw_wake':
             showMessage("Tell the Mafia to go to sleep and tell the Night Watchmen to wake up.", () => {
-                gameState.phase = gameState.rolesRegistered ? 'night_nw_check' : 'night_register_nw';
+                if (!gameState.rolesRegistered) {
+                    gameState.phase = 'night_register_nw';
+                } else if (isRoleAlive(gameState.nwPlayer)) {
+                    gameState.phase = 'night_nw_check';
+                } else {
+                    gameState.phase = 'night_nw_sleep';
+                }
                 renderPhase();
             });
             break;
@@ -533,10 +600,17 @@ function renderPhase() {
                 ? "👍 Give a thumbs up to the Night Watchmen."
                 : "👎 Give a thumbs down to the Night Watchmen.";
             showMessage(msg, () => {
-                const docActive = doctor && (isRoleAlive(gameState.doctorPlayer) || !gameState.rolesRegistered);
-                gameState.phase = docActive ? 'night_doctor_wake' : 'day_announce';
+                if (doctor)       gameState.phase = 'night_doctor_wake';
+                else if (sheriff) gameState.phase = 'night_sheriff_wake';
+                else              gameState.phase = 'day_announce';
                 renderPhase();
             });
+            break;
+        }
+
+        case 'night_nw_sleep': {
+            const next = doctor ? 'night_doctor_wake' : (sheriff ? 'night_sheriff_wake' : 'day_announce');
+            showMessage("Tell the Night Watchmen to go to sleep.", next);
             break;
         }
 
@@ -546,7 +620,13 @@ function renderPhase() {
                 ? "Tell the Night Watchmen to go to sleep and wake up the Doctor."
                 : "Wake up the Doctor.";
             showMessage(msg, () => {
-                gameState.phase = gameState.rolesRegistered ? 'night_doctor_save' : 'night_register_doctor';
+                if (!gameState.rolesRegistered) {
+                    gameState.phase = 'night_register_doctor';
+                } else if (isRoleAlive(gameState.doctorPlayer)) {
+                    gameState.phase = 'night_doctor_save';
+                } else {
+                    gameState.phase = 'night_doctor_sleep';
+                }
                 renderPhase();
             });
             break;
@@ -566,8 +646,7 @@ function renderPhase() {
         }
 
         case 'night_doctor_save': {
-            const targets = gameState.alivePlayers;
-            showPlayerSelect("Who does the Doctor want to save?", targets, (selected) => {
+            showPlayerSelect("Who does the Doctor want to save?", gameState.alivePlayers, (selected) => {
                 gameState.saveTarget = selected;
                 gameState.phase = 'night_doctor_sleep';
                 renderPhase();
@@ -575,21 +654,130 @@ function renderPhase() {
             break;
         }
 
-        case 'night_doctor_sleep':
-            showMessage("Tell the Doctor to go to sleep.", 'day_announce');
+        case 'night_doctor_sleep': {
+            const next = sheriff ? 'night_sheriff_wake' : 'day_announce';
+            showMessage("Tell the Doctor to go to sleep.", next);
+            break;
+        }
+
+        // ---- NIGHT: SHERIFF ----
+        case 'night_sheriff_wake': {
+            let msg;
+            if (doctor && isRoleAlive(gameState.doctorPlayer)) {
+                msg = "Tell the Doctor to go to sleep and wake up the Sheriff.";
+            } else if (nightWatchmen && isRoleAlive(gameState.nwPlayer) && !doctor) {
+                msg = "Tell the Night Watchmen to go to sleep and wake up the Sheriff.";
+            } else {
+                msg = "Wake up the Sheriff.";
+            }
+            showMessage(msg, () => {
+                if (!gameState.rolesRegistered) {
+                    gameState.phase = 'night_register_sheriff';
+                } else if (isRoleAlive(gameState.sheriffPlayer) && !gameState.sheriffUsedShot) {
+                    gameState.phase = 'night_sheriff_choice';
+                } else {
+                    gameState.phase = 'night_sheriff_sleep';
+                }
+                renderPhase();
+            });
+            break;
+        }
+
+        case 'night_register_sheriff': {
+            const candidates = gameState.alivePlayers.filter(p =>
+                !gameState.mafiaPlayers.includes(p) &&
+                p !== gameState.nwPlayer &&
+                p !== gameState.doctorPlayer
+            );
+            showPlayerSelect("Press the Sheriff.", candidates, (selected) => {
+                gameState.sheriffPlayer = selected;
+                checkRolesRegistered();
+                gameState.phase = 'night_sheriff_choice';
+                renderPhase();
+            });
+            break;
+        }
+
+        case 'night_sheriff_choice': {
+            gameContent.innerHTML = `
+                <p class="game-message">Ask the Sheriff if they want to use their shot.</p>
+                <button class="btn" id="sheriffYesBtn">Yes</button>
+                <button class="btn" id="sheriffNoBtn">No</button>
+            `;
+            document.getElementById('sheriffYesBtn').addEventListener('click', () => {
+                gameState.phase = 'night_sheriff_kill_select';
+                renderPhase();
+            });
+            document.getElementById('sheriffNoBtn').addEventListener('click', () => {
+                gameState.phase = 'night_sheriff_sleep';
+                renderPhase();
+            });
+            break;
+        }
+
+        case 'night_sheriff_kill_select': {
+            const targets = gameState.alivePlayers.filter(p => p !== gameState.sheriffPlayer);
+            showPlayerSelect("Who does the Sheriff want to shoot?", targets, (selected) => {
+                gameState.sheriffKillTarget = selected;
+                gameState.sheriffUsedShot = true;
+                gameState.phase = 'night_sheriff_sleep';
+                renderPhase();
+            });
+            break;
+        }
+
+        case 'night_sheriff_sleep':
+            showMessage("Tell the Sheriff to go to sleep.", 'day_announce');
             break;
 
         // ---- DAY ----
         case 'day_announce': {
             const dead = gameState.killTarget;
             const saved = gameState.saveTarget;
-            let announcement;
+            const sheriffTarget = gameState.sheriffKillTarget;
+
+            const announcements = [];
+
+            // Resolve mafia kill
             if (saved && dead === saved) {
-                announcement = `There was an attempted murder on ${dead}, but they were saved by the Doctor.`;
+                announcements.push(`There was an attempted murder on ${dead}, but they were saved by the Doctor.`);
             } else {
-                announcement = `${dead} was murdered.`;
+                announcements.push(`${dead} was murdered by the Mafia.`);
                 gameState.alivePlayers = gameState.alivePlayers.filter(p => p !== dead);
             }
+
+            // Resolve sheriff kill
+            if (sheriffTarget) {
+                const doctorSavedTarget = saved === sheriffTarget;
+                const doctorSavedSheriff = saved === gameState.sheriffPlayer;
+
+                if (gameState.mafiaPlayers.includes(sheriffTarget)) {
+                    if (doctorSavedTarget) {
+                        announcements.push(`${sheriffTarget} was shot by the Sheriff, but was saved by the Doctor!`);
+                    } else {
+                        announcements.push(`${sheriffTarget} was shot by the Sheriff and revealed to be Mafia!`);
+                        gameState.alivePlayers = gameState.alivePlayers.filter(p => p !== sheriffTarget);
+                    }
+                } else {
+                    // Sheriff shot an innocent
+                    if (doctorSavedTarget && doctorSavedSheriff) {
+                        announcements.push(`${sheriffTarget} was shot by the Sheriff but saved by the Doctor. The Sheriff was also saved by the Doctor from execution.`);
+                    } else if (doctorSavedTarget) {
+                        announcements.push(`${sheriffTarget} was shot by the Sheriff but was saved by the Doctor. The Sheriff has been executed for shooting an innocent townsperson.`);
+                        gameState.alivePlayers = gameState.alivePlayers.filter(p => p !== gameState.sheriffPlayer);
+                    } else if (doctorSavedSheriff) {
+                        announcements.push(`${sheriffTarget} was shot by the Sheriff and was innocent. The Sheriff would have been executed, but was saved by the Doctor.`);
+                        gameState.alivePlayers = gameState.alivePlayers.filter(p => p !== sheriffTarget);
+                    } else {
+                        announcements.push(`${sheriffTarget} was shot by the Sheriff, but was innocent. The Sheriff has been executed for killing an innocent townsperson.`);
+                        gameState.alivePlayers = gameState.alivePlayers.filter(p =>
+                            p !== sheriffTarget && p !== gameState.sheriffPlayer
+                        );
+                    }
+                }
+            }
+
+            const announcement = announcements.join('<br><br>');
 
             if (aliveMafia().length === 0) {
                 showMessage(`Tell everyone to wake up.<br><br>${announcement}<br><br>The Mafia Does Not Remain. Town wins! 🎉`, null);
@@ -622,6 +810,7 @@ function renderPhase() {
                         gameState.killTarget = null;
                         gameState.saveTarget = null;
                         gameState.checkTarget = null;
+                        gameState.sheriffKillTarget = null;
                         gameState.phase = 'night_wake_mafia';
                         renderPhase();
                     });
