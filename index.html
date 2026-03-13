@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="color-scheme" content="only light">
+    <link rel="stylesheet" href="styles.css">
+    <title>Mafia Helper</title>
+</head>
+<body>
+    <div class="menu onscreen" id="mainMenu">
+        <div class="btns">
+            <button class="btn" id="startGameBtn">Start Game</button>
+            <button class="btn" id="playersBtn">Players</button>
+            <button class="btn" id="rolesBtn">Roles</button>
+            <button class="btn" id="settingsBtn">Settings</button>
+        </div>
+    </div>
+
+    <div class="menu offscreen-left" id="startGameMenu">
+        <div class="game-content" id="gameContent"></div>
+        <div class="start-btns" id="startBtns">
+            <button class="btn" id="confirmStartBtn">Confirm Start Game</button>
+            <button class="btn" id="startGameBackBtn">Back</button>
+        </div>
+    </div>
+
+    <div class="menu offscreen-right" id="playersMenu">
+        <div class="btns">
+            <div id="playerList"></div>
+            <button class="btn" id="addPlayerBtn">Add Player</button>
+            <button class="btn" id="removePlayerBtn">Remove Player</button>
+            <button class="btn" id="playersBackBtn">Back</button>
+        </div>
+    </div>
+
+    <div class="menu offscreen-right" id="rolesMenu">
+        <div class="btns">
+            <div class="toggle-btn">
+                <span>Night Watchmen</span>
+                <label class="switch">
+                    <input type="checkbox" id="nightWatchmenToggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="toggle-btn">
+                <span>Doctor</span>
+                <label class="switch">
+                    <input type="checkbox" id="doctorToggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <button class="btn" id="rolesBackBtn">Back</button>
+        </div>
+    </div>
+
+    <div class="menu offscreen-right" id="settingsMenu">
+        <div class="btns">
+            <div class="toggle-btn" id="physicalCardsToggle">
+                <span id="physicalCardsLabel">Lack Physical Cards</span>
+                <label class="switch">
+                    <input type="checkbox" id="physicalCardsSwitch" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="roles-toggle-wrapper" id="rolesToggleWrapper">
+                <div class="toggle-btn" id="modeToggle">
+                    <span id="modeLabel">Roles: Manual</span>
+                    <label class="switch">
+                        <input type="checkbox" id="manualAutoSwitch">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            <button class="btn" id="settingsBackBtn">Back</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
