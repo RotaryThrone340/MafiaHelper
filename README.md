@@ -16,7 +16,7 @@ A tool built to help **Mafia narrators** keep track of roles, kills, and everyth
 
 ---
 
-## 💬 Contributions
+## Contributions
 
 Suggestions are always welcome! If you have an idea or want to contribute, feel free to open an issue or pull request. It would mean the world.
 
