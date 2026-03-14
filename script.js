@@ -190,6 +190,37 @@ const gameState = {
     lpc_assignIndex: 0
 };
 
+// ============ HISTORY ============
+const gameHistory = [];
+let skipNextHistoryPush = false;
+
+function pushHistory() {
+    if (skipNextHistoryPush) {
+        skipNextHistoryPush = false;
+        return;
+    }
+    gameHistory.push(JSON.parse(JSON.stringify(gameState)));
+}
+
+function goBack() {
+    if (gameHistory.length <= 1) return;
+    gameHistory.pop();
+    const prev = gameHistory[gameHistory.length - 1];
+    Object.assign(gameState, JSON.parse(JSON.stringify(prev)));
+    skipNextHistoryPush = true;
+    renderPhase();
+}
+
+function addBackBtn(container) {
+    if (gameHistory.length <= 1) return;
+    const btn = document.createElement('button');
+    btn.className = 'btn-back';
+    btn.textContent = '← Back';
+    btn.addEventListener('click', goBack);
+    container.appendChild(btn);
+}
+
+// ============ GAME HELPERS ============
 function getMafiaCount(playerCount) {
     if (playerCount <= 5) return 1;
     return Math.floor(playerCount / 6);
@@ -220,6 +251,7 @@ function resetStartGameUI() {
     startBtns.classList.remove('slide-down');
     gameContent.classList.remove('active');
     gameContent.innerHTML = '';
+    gameHistory.length = 0;
 }
 
 function getPlayerNames() {
@@ -258,6 +290,7 @@ confirmStartBtn && confirmStartBtn.addEventListener('click', () => {
     gameState.round = 1;
     gameState.rolesRegistered = false;
     gameState.lpc_assignIndex = 0;
+    gameHistory.length = 0;
 
     startBtns.classList.add('slide-down');
     gameContent.classList.add('active');
@@ -273,9 +306,10 @@ confirmStartBtn && confirmStartBtn.addEventListener('click', () => {
     renderPhase();
 });
 
-// ============ GAME HELPERS ============
+// ============ UI HELPERS ============
 function showMessage(text, next) {
-    const btnLabel = next !== null ? 'Continue' : 'Back to Menu';
+    const isGameOver = next === null;
+    const btnLabel = isGameOver ? 'Back to Menu' : 'Continue';
     gameContent.innerHTML = `
         <p class="game-message">${text}</p>
         <button class="btn" id="continueBtn">${btnLabel}</button>
@@ -291,6 +325,7 @@ function showMessage(text, next) {
     } else {
         btn.addEventListener('click', showMain);
     }
+    if (!isGameOver) addBackBtn(gameContent);
 }
 
 function applyGridLayout(listEl, playerCount) {
@@ -349,6 +384,77 @@ function showPlayerSelect(prompt, players, onConfirm) {
     confirmBtn.addEventListener('click', () => {
         if (selectedIndex !== null) onConfirm(players[selectedIndex]);
     });
+
+    addBackBtn(gameContent);
+}
+
+function showVoteSelect(players) {
+    const items = players.map((p, i) => `
+        <div class="player-select-item" data-index="${i}">
+            <span>${p}</span>
+            <span class="select-mark">○</span>
+        </div>
+    `).join('');
+
+    gameContent.innerHTML = `
+        <p class="game-message">Who did the townspeople vote out?</p>
+        <div class="player-select-list">${items}</div>
+        <button class="btn" id="confirmSelectBtn" disabled>Confirm</button>
+        <button class="btn" id="skipVoteBtn">Skip Vote</button>
+    `;
+
+    let selectedIndex = null;
+    const itemEls = gameContent.querySelectorAll('.player-select-item');
+    const confirmBtn = document.getElementById('confirmSelectBtn');
+    const skipBtn = document.getElementById('skipVoteBtn');
+
+    applyGridLayout(gameContent.querySelector('.player-select-list'), players.length);
+
+    itemEls.forEach(item => {
+        item.addEventListener('click', () => {
+            itemEls.forEach(el => {
+                el.classList.remove('selected');
+                el.querySelector('.select-mark').textContent = '○';
+            });
+            item.classList.add('selected');
+            item.querySelector('.select-mark').textContent = '✓';
+            selectedIndex = parseInt(item.dataset.index);
+            confirmBtn.disabled = false;
+        });
+    });
+
+    confirmBtn.addEventListener('click', () => {
+        if (selectedIndex !== null) resolveVote(players[selectedIndex]);
+    });
+
+    skipBtn.addEventListener('click', () => resolveVote(null));
+
+    addBackBtn(gameContent);
+}
+
+function resolveVote(selected) {
+    if (selected !== null) {
+        gameState.alivePlayers = gameState.alivePlayers.filter(p => p !== selected);
+    }
+
+    if (aliveMafia().length === 0) {
+        showMessage("The Mafia Does Not Remain. Town wins! 🎉", null);
+    } else if (aliveTown().length === 0) {
+        showMessage("The Mafia Remains.<br><br>The townspeople have been overwhelmed. Mafia wins! 🔴", null);
+    } else {
+        const msg = selected === null
+            ? "The town chose to skip the vote. The Mafia Remains."
+            : "The Mafia Remains.";
+        showMessage(msg, () => {
+            gameState.round++;
+            gameState.killTarget = null;
+            gameState.saveTarget = null;
+            gameState.checkTarget = null;
+            gameState.sheriffKillTarget = null;
+            gameState.phase = 'night_wake_mafia';
+            renderPhase();
+        });
+    }
 }
 
 function showMultiPlayerSelect(prompt, players, count, onConfirm) {
@@ -390,10 +496,17 @@ function showMultiPlayerSelect(prompt, players, count, onConfirm) {
     confirmBtn.addEventListener('click', () => {
         if (selected.size === count) onConfirm([...selected].map(i => players[i]));
     });
+
+    addBackBtn(gameContent);
 }
 
 // ============ GAME RENDER ============
 function renderPhase() {
+    // Save history for all phases except pass-through ones
+    if (gameState.phase !== 'lpc_auto_assign') {
+        pushHistory();
+    }
+
     switch (gameState.phase) {
 
         // ---- LPC AUTO ----
@@ -712,6 +825,7 @@ function renderPhase() {
                 gameState.phase = 'night_sheriff_sleep';
                 renderPhase();
             });
+            addBackBtn(gameContent);
             break;
         }
 
@@ -738,7 +852,6 @@ function renderPhase() {
 
             const announcements = [];
 
-            // Resolve mafia kill
             if (saved && dead === saved) {
                 announcements.push(`There was an attempted murder on ${dead}, but they were saved by the Doctor.`);
             } else {
@@ -746,7 +859,6 @@ function renderPhase() {
                 gameState.alivePlayers = gameState.alivePlayers.filter(p => p !== dead);
             }
 
-            // Resolve sheriff kill
             if (sheriffTarget) {
                 const doctorSavedTarget = saved === sheriffTarget;
                 const doctorSavedSheriff = saved === gameState.sheriffPlayer;
@@ -759,7 +871,6 @@ function renderPhase() {
                         gameState.alivePlayers = gameState.alivePlayers.filter(p => p !== sheriffTarget);
                     }
                 } else {
-                    // Sheriff shot an innocent
                     if (doctorSavedTarget && doctorSavedSheriff) {
                         announcements.push(`${sheriffTarget} was shot by the Sheriff but saved by the Doctor. The Sheriff was also saved by the Doctor from execution.`);
                     } else if (doctorSavedTarget) {
@@ -797,25 +908,7 @@ function renderPhase() {
             break;
 
         case 'day_vote':
-            showPlayerSelect("Who did the townspeople vote out?", gameState.alivePlayers, (selected) => {
-                gameState.alivePlayers = gameState.alivePlayers.filter(p => p !== selected);
-
-                if (aliveMafia().length === 0) {
-                    showMessage("The Mafia Does Not Remain. Town wins! 🎉", null);
-                } else if (aliveTown().length === 0) {
-                    showMessage("The Mafia Remains.<br><br>The townspeople have been overwhelmed. Mafia wins! 🔴", null);
-                } else {
-                    showMessage("The Mafia Remains.", () => {
-                        gameState.round++;
-                        gameState.killTarget = null;
-                        gameState.saveTarget = null;
-                        gameState.checkTarget = null;
-                        gameState.sheriffKillTarget = null;
-                        gameState.phase = 'night_wake_mafia';
-                        renderPhase();
-                    });
-                }
-            });
+            showVoteSelect(gameState.alivePlayers);
             break;
     }
 }

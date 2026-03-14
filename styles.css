@@ -239,6 +239,24 @@ body {
 .btn:hover  { background-color: #161d28; color: white; }
 .btn:active { background-color: white; color: #0D1117; }
 
+.btn-back {
+    background: transparent;
+    border: 1px solid #333;
+    color: #666;
+    height: 12vw;
+    width: 40vw;
+    border-radius: 1vw;
+    font-size: 4vw;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    outline: none;
+}
+
+.btn-back:active {
+    background: #333;
+    color: white;
+}
+
 .player-input {
     background-color: #1a2535;
     text-align: center;
@@ -289,10 +307,10 @@ body {
         padding: 0 3vw;
     }
 
-    /* Switch uses vh in landscape so it doesn't balloon with wide vw */
     .switch {
         width: 11vh;
         height: 5vh;
+        flex-shrink: 0;
     }
 
     .slider {
@@ -353,5 +371,11 @@ body {
     .player-select-list {
         width: 90vw;
         gap: 1.5vh;
+    }
+
+    .btn-back {
+        height: 8vh;
+        width: 30vw;
+        font-size: 3vh;
     }
 }
