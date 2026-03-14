@@ -121,7 +121,7 @@ if (physicalCardsSwitch) {
     });
 }
 
-let rolesAuto = false;
+let rolesAuto = True;
 const switchInput = document.getElementById('manualAutoSwitch');
 const modeLabel = document.getElementById('modeLabel');
 
